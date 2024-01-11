@@ -1,0 +1,6 @@
+1. `usertrap` called `syscall`
+2. `p->trapframe->a7 = 0xf`, `0xf = 15 = SYS_open` means current process is about to call or calling SYS_open 
+3. user mode since `SPP = sstatus[8] = 0`
+4. `lw	a3,0(zero) # 0 <_entry-0x80000000>`, `a3`
+5. the virtual address 0 does not map to any physical address; No; Yes. d = 13 => Load Page Fault
+6. `initcode`, 0000000(0 -> \000)
