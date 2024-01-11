@@ -46,3 +46,26 @@ li a7, SYS\_sleep
 {sys\_sleep.asm}
 ```
 More detail should refer to link tool, which do similar thing for .lib
+
+## xv6 syscall declaration guide
+1. declare user wrapped syscall
+	- user/user.h
+		- T syscall(T arg);
+2. add stub(entry code in asm, syscall via ecall instruction)
+	- user/usys.pl -> user/usys.S
+		- entry("syscall");
+3. implement syscall
+	- kernel/syscall.h:
+		- #define SYS\_call #N
+	- kernel/sysproc.c :
+		- uint64 sys\_call(void) {...};
+	- kernel/sycall.c
+		- extern uint64 sys\_call(void);
+		- uint64 (\*syscalls[])(void) = {
+			[SYS\_call] sys\_call,
+			...,
+			}
+		- syscall\_names[] = {
+			[SYS\_call] "call",
+			...,
+			}
