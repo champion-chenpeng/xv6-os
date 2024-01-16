@@ -1,0 +1,15 @@
+0. questions:
+	a. How user process access memory via virtual address?
+		- CPU use satp to convert virtual address to physical address and then query memory
+			these code may happen in .asm or machine code level, it is compiler's duty to add and combine
+		- switch satp through instructions in trampoline(call function directly using function pointer)	
+  			uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
+  			((void (*)(uint64))trampoline_userret)(satp);
+	b. pgaccess
+		- which methods make PTE_A assigned?
+			- [x] assignment, buf[i * PGSIZE] += 1
+			- malloc?
+			
+1. trivial: getpid() -> ugetpid(); other possible optimization share the same idea, replace a system call with direct user program, which only read something from USYSCALL. ex. getxxx()
+2. dynamic: we can store uptime in USYSCALL, but continuously update it in some kernel calls such as time interrupts...
+3. those with large range index cannot store in USYSCALL, such as file inputs query
