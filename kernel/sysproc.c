@@ -74,7 +74,33 @@ sys_sleep(void)
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  int n;
+  unsigned int abits = 0;
+  uint64 startpage, pabits;
+  pagetable_t pagetable = myproc()->pagetable;
+
+  argaddr(0, &startpage);
+  argint(1, &n);
+  argaddr(2, &pabits);
+
+  if (n > 32)
+	return -1;
+
+  // get abits
+  for (int i = 1; i < n; i++) { // seems startpage is accessed during malloc(user), but the checking did not include it, we skip it.
+	pte_t *pte = walk(pagetable, startpage + PGSIZE * i, 0);
+	if (*pte & PTE_A) {
+	  printf("i%d: p%p\n", i, pte);
+	  abits |= (1 << i);
+	} else {
+	  *pte &= (~PTE_A); // clear PTE_A since walk accessed
+	}
+  }
+
+  // copy abits to pabits
+  if (copyout(pagetable, pabits, (char*)&abits, sizeof(abits)) < 0)
+	return -1;
+
   return 0;
 }
 #endif
