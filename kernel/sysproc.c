@@ -90,9 +90,7 @@ sys_pgaccess(void)
   for (int i = 1; i < n; i++) { // seems startpage is accessed during malloc(user), but the checking did not include it, we skip it.
 	pte_t *pte = walk(pagetable, startpage + PGSIZE * i, 0);
 	if (*pte & PTE_A) {
-	  printf("i%d: p%p\n", i, pte);
 	  abits |= (1 << i);
-	} else {
 	  *pte &= (~PTE_A); // clear PTE_A since walk accessed
 	}
   }
