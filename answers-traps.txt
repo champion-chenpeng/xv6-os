@@ -1,0 +1,39 @@
+1. RISC-V assembly
+	- function arguments: an, `li a2, 13`, `li a0,0`
+	- g() `sd s0,0(sp)`;
+	- printf(): 630
+	- after printf: ra: 38
+	- HE110 World; set 0x11E
+	- y=1; if printf not panic, then it takes a2, which is unknon status but must have a value
+2. backtrace
+	- c
+		- inline: like trait in php, insert a code block in compilation instead of construct stack frame
+	- questions
+		- it seems the end condition require the first saved fp point to a outside address, it may be set in initcode.S etc start code
+		- how to run demo1.S gdb shown in lecture 5 md slide? it seems useful
+			https://pdos.csail.mit.edu/6.1810/2023/lec/l-riscv.txt
+		- learn more about asm
+			https://michaeljclark.github.io/asm
+		- primitive types mainly diff in the length, especially using pointer. char* only read 1B and uint64* reads 8B,
+3. alarm
+	- question:
+		- how timer interrupter called and returned? it seems it will return to original place in user program
+	- gdb:
+		- ra: 0x258, <test1+106> ==> test1:for() 
+			- in test1 for()
+		- ra: 0x258
+			- in periodic
+		- it seems that when in for(), ra == 0x258->for(), and for() -> intr -> trap -> periodic -> for(), since the ra is always 0x258
+	- debug
+		- alarmtest log:
+			- test1 failed: foo() executed fewter times...(j < i), possible reason:
+				- timer interrupt return somewhere other
+				- registers not restored correctly
+					- usertrap: unexpected scause c=12=Instruction page fault; sepc=0x14f50=stval, where interrupt started
+					- or j=nfoo < i, i - j ~= 2~4
+			- reason: p->trapframe not restored
+				- key frame: epc; but cannot only restore epc, there are many location related regs, ex, ra, sp... which maybe modified by handler
+					- we can test this by elaborately select the only needed regs instead of whole frame
+
+*. usertests -q failed, and cause make qemu failed, whose modification cannot be tracked by git 
+possiblly as said, other parts of the kernel may be broken with current code. we should thoroughly examinate usertests.

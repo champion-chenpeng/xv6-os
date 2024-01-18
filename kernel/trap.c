@@ -58,7 +58,7 @@ usertrap(void)
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
-    p->trapframe->epc += 4;
+    p->trapframe->epc += 4; // [CP] it seems like `ret` in usys.pl or .S
 
     // an interrupt will change sepc, scause, and sstatus,
     // so enable only now that we're done with those registers.
@@ -77,8 +77,28 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+	// set epc to alarmhandler if reach interval
+	if(p->alarmintv > 0) { 
+	  uint xticks;
+	  acquire(&tickslock);
+	  xticks = ticks;
+	  release(&tickslock);
+	  if ((xticks - p->lastticks) >= p->alarmintv) {
+	    p->lastticks = xticks;
+		// redirect to handler
+		if (!p->inhandler) {
+			// save p registers, this time is the status that ready to return to interrupt place
+			p->intrtrapframe= *(p->trapframe);
+			// only change epc to redirect to handler when return
+			// currently our handler do not take any params, generally, handler do not use any proc data since
+			p->trapframe->epc = p->alarmhandler;
+			p->inhandler = 1; // enter handler
+		}
+	  } 
+	}
     yield();
+  }
 
   usertrapret();
 }
