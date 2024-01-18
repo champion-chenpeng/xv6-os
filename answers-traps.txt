@@ -37,3 +37,5 @@
 
 *. usertests -q failed, and cause make qemu failed, whose modification cannot be tracked by git 
 possiblly as said, other parts of the kernel may be broken with current code. we should thoroughly examinate usertests.
+	- not usertests -q failed, but make grade failed. The cause is define r_fp outside the #ifndef __ASSEMBLER__ macro. That is, these function definition is C fashion, so cannot be read by assembler, other #define is valid in .asm, such as in trampoline.S: #include "riscv."
+	- why first make qemu pass? maybe the compilation pipeline is different. ex. make grade strictly compile .c to .asm/.S, then use assembler, but make qemu may loosely directly use compiler .c to .o etc.

@@ -1,5 +1,14 @@
 #ifndef __ASSEMBLER__
 
+// frame pointer, must in __ASSEMBLER__ env
+static inline uint64
+r_fp()
+{
+	uint64 x;
+	asm volatile("mv %0, s0" : "=r" (x) );
+	return x;
+}
+
 // which hart (core) is this?
 static inline uint64
 r_mhartid()
@@ -361,13 +370,3 @@ typedef uint64 *pagetable_t; // 512 PTEs
 // Sv39, to avoid having to sign-extend virtual addresses
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
-
-
-// frame pointer
-static inline uint64
-r_fp()
-{
-	uint64 x;
-	asm volatile("mv %0, s0" : "=r" (x) );
-	return x;
-}
