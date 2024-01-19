@@ -1,0 +1,2 @@
+2. Using threads
+	- why missing puts? there maybe race btw two threads to the same table[i] puts. ex, current table[i]->e1->null, thread1 and thread2 execute insert at the same time(thread1 switch to thread2 in insert calling), then both threads are about to insert in the same place(btw, table[i] and e1). After thread2 insert, it comes table[i]->e2->e1->null. But thread1 also wanna insert btw table[i] and e1, make e2'->next = e1, table[i] = &e2', results table[i]->e2'->e1->null, that is, e2' replaced e2.
