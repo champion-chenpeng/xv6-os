@@ -6,6 +6,7 @@
 
 static int nthread = 1;
 static int round = 0;
+static int current_thread = 0;
 
 struct barrier {
   pthread_mutex_t barrier_mutex;
@@ -33,18 +34,15 @@ barrier()
 	// arrive and stop here
   pthread_mutex_lock(&bstate.barrier_mutex);
   bstate.nthread++;
-  printf("round %d: nthread %d", bstate.round, bstate.nthread);
-  if (bstate.nthread == nthread) {// the last one
-  	bstate.round++;
-  	bstate.nthread = 0;
-	// the first one achieve cond
-  	pthread_cond_broadcast(&bstate.barrier_cond);
+  if (bstate.nthread != nthread) {
+	pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex);
+  } 
+  else {
+	bstate.round++;
+	bstate.nthread = 0;
+	pthread_cond_broadcast(&bstate.barrier_cond);
   }
   pthread_mutex_unlock(&bstate.barrier_mutex);
-  if (bstate.nthread < nthread) {
-	pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex);
-  }
-  
 }
 
 static void *
@@ -53,12 +51,10 @@ thread(void *xa)
   long n = (long) xa;
   long delay;
   int i;
-
   for (i = 0; i < 20000; i++) {
     int t = bstate.round;
-	printf("[CP] i: %d, t: %d", i, t);
     assert (i == t);
-    // barrier();
+    barrier();
     usleep(random() % 100);
   }
 

@@ -11,3 +11,12 @@
 	- this also illustrate the importance of proctection/isolation, the pc and sp is easy to be modified by asm!
 	- ra=0x2000, it seems STACK\_SIZE
 	- enter into all\_thread? it seems context is written with some stack varible, such as t / next\_thread, 
+2.
+3. barrier
+	- good example to understand sleep and wakeup strategy
+	- debug
+		- avoid deadlock, use exclusive condition to distinguish customer and supplier, if else, otherwise the condition varible may be changed in previous if, then still enter into next if.
+			- ex. if(customer) supplier=1; if(supplier){...}, the thread will be cunstomer then be supplier
+		- printf a variable not function well in deadlock
+			- underlying optmization(parallel) versus lock(serial)
+			- the printf may be put after, or wait for some events for variable its about to printf
