@@ -369,6 +369,20 @@ iunlockput(struct inode *ip)
   iput(ip);
 }
 
+void iparead(struct inode *ip, uint *paddr, int islog, struct buf *bp) {
+	uint addr;
+    if((addr = *paddr) == 0){
+      addr = balloc(ip->dev);
+	  if(addr){
+      	*paddr = addr;
+		if(islog){
+			log_write(bp);
+		}
+	  }
+    }
+}
+	
+
 // Inode content
 //
 // The content (data) associated with each inode is stored
@@ -382,39 +396,26 @@ iunlockput(struct inode *ip)
 static uint
 bmap(struct inode *ip, uint bn)
 {
-  uint addr, *a;
-  struct buf *bp;
+  uint *a;
+  struct buf *bp = (struct buf *)0;
 
   if(bn < NDIRECT){
-    if((addr = ip->addrs[bn]) == 0){
-      addr = balloc(ip->dev);
-      if(addr == 0)
-        return 0;
-      ip->addrs[bn] = addr;
-    }
-    return addr;
+	iparead(ip, ip->addrs + bn, 0, bp);
+    return ip->addrs[bn];
   }
   bn -= NDIRECT;
 
   if(bn < NINDIRECT){
     // Load indirect block, allocating if necessary.
-    if((addr = ip->addrs[NDIRECT]) == 0){
-      addr = balloc(ip->dev);
-      if(addr == 0)
-        return 0;
-      ip->addrs[NDIRECT] = addr;
-    }
-    bp = bread(ip->dev, addr);
+	iparead(ip, ip->addrs + NDIRECT, 0, bp);
+	if(ip->addrs[NDIRECT] == 0)
+		return 0;
+    bp = bread(ip->dev, ip->addrs[NDIRECT]);
     a = (uint*)bp->data;
-    if((addr = a[bn]) == 0){
-      addr = balloc(ip->dev);
-      if(addr){
-        a[bn] = addr;
-        log_write(bp);
-      }
-    }
+	
+	iparead(ip, a + bn, 1, bp);
     brelse(bp);
-    return addr;
+    return a[bn];
   }
 
   panic("bmap: out of range");
