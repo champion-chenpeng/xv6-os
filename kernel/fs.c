@@ -381,6 +381,20 @@ void iparead(struct inode *ip, uint *paddr, int islog, struct buf *bp) {
 	  }
     }
 }
+
+void singleread(struct inode *ip, uint *paddr, uint **praddr, int offset) {
+	struct buf *bp = (struct buf *)0;
+    // Load indirect block, allocating if necessary.
+	iparead(ip, paddr, 0, bp);
+	if(*paddr){
+    	bp = bread(ip->dev, *paddr);
+    	*praddr = (uint*)bp->data;
+	
+		iparead(ip, *praddr + offset, 1, bp);
+    	brelse(bp);
+	}
+}
+	
 	
 
 // Inode content
@@ -407,16 +421,13 @@ bmap(struct inode *ip, uint bn)
 
   if(bn < NINDIRECT){
     // Load indirect block, allocating if necessary.
-	iparead(ip, ip->addrs + NDIRECT, 0, bp);
+	singleread(ip, ip->addrs + NDIRECT, &a, bn);
 	if(ip->addrs[NDIRECT] == 0)
 		return 0;
-    bp = bread(ip->dev, ip->addrs[NDIRECT]);
-    a = (uint*)bp->data;
-	
-	iparead(ip, a + bn, 1, bp);
-    brelse(bp);
     return a[bn];
   }
+
+  bn -= NINDIRECT;
 
   panic("bmap: out of range");
 }
