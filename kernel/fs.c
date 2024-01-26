@@ -410,7 +410,7 @@ void singleread(struct inode *ip, uint *paddr, uint **praddr, int offset) {
 static uint
 bmap(struct inode *ip, uint bn)
 {
-  uint *a;
+  uint *a, *b;
   struct buf *bp = (struct buf *)0;
 
   if(bn < NDIRECT){
@@ -420,7 +420,6 @@ bmap(struct inode *ip, uint bn)
   bn -= NDIRECT;
 
   if(bn < NINDIRECT){
-    // Load indirect block, allocating if necessary.
 	singleread(ip, ip->addrs + NDIRECT, &a, bn);
 	if(ip->addrs[NDIRECT] == 0)
 		return 0;
@@ -428,8 +427,39 @@ bmap(struct inode *ip, uint bn)
   }
 
   bn -= NINDIRECT;
+  
+  if(bn < NDINDIRECT){
+	// first load singly indirect block 
+	singleread(ip, ip->addrs + NDIRECT + 1, &a, bn / NINDIRECT);
+	if(ip->addrs[NDIRECT+1] == 0)
+		return 0;
+	
+	// then load doubly indirect block
+	singleread(ip, a + bn / NINDIRECT, &b, bn % NINDIRECT);
+	if(a[bn / NINDIRECT] == 0)
+		return 0;
+	return b[bn % NINDIRECT];
+  }
+	
 
   panic("bmap: out of range");
+}
+
+void truncsingly(struct inode *ip, uint * paddr) {
+  int j;
+  uint *a;
+  struct buf *bp;
+  if(*paddr){
+    bp = bread(ip->dev, *paddr);
+    a = (uint*)bp->data;
+    for(j = 0; j < NINDIRECT; j++){
+      if(a[j])
+        bfree(ip->dev, a[j]);
+    }
+    brelse(bp);
+    bfree(ip->dev, *paddr);
+    *paddr = 0;
+  }
 }
 
 // Truncate inode (discard contents).
@@ -447,17 +477,19 @@ itrunc(struct inode *ip)
       ip->addrs[i] = 0;
     }
   }
+  
+  truncsingly(ip, ip->addrs + NDIRECT);
 
-  if(ip->addrs[NDIRECT]){
-    bp = bread(ip->dev, ip->addrs[NDIRECT]);
-    a = (uint*)bp->data;
-    for(j = 0; j < NINDIRECT; j++){
-      if(a[j])
-        bfree(ip->dev, a[j]);
-    }
-    brelse(bp);
-    bfree(ip->dev, ip->addrs[NDIRECT]);
-    ip->addrs[NDIRECT] = 0;
+  if(ip->addrs[NDIRECT+1]){
+	bp = bread(ip->dev, ip->addrs[NDIRECT+1]);
+	a = (uint*)bp->data;
+	for(j = 0; j < NINDIRECT; j++) {
+		if(a[j])
+			truncsingly(ip, a + j);
+	}
+	brelse(bp);
+	bfree(ip->dev, ip->addrs[NDIRECT+1]);
+	ip->addrs[NDIRECT+1] = 0;
   }
 
   ip->size = 0;
